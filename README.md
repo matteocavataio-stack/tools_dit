@@ -6,7 +6,17 @@ Schermata principale con un bottone per ciascuno dei 7 strumenti; toccandolo si 
 
 Tool: Camera specs & data rates · Firmware tracker · Data calculator · Lens coverage · Frame lines · Exposure planner · Upload time.
 
-I tool sono caricati dal sito: serve connessione internet e si aggiornano da soli.
+## Offline
+
+Tutti i tool funzionano senza connessione: pagine, script, font e immagini sono incorporati nell'app
+(`app/src/main/assets/site/`, ~3 MB). Con internet l'app prende la pagina aggiornata dal sito; senza rete (o se il
+caricamento fallisce) usa la copia incorporata. I link esterni (download firmware, "En Español", ecc.) richiedono internet.
+
+Per aggiornare la copia incorporata ai dati piu' recenti del sito (es. nuovi firmware):
+
+```bash
+python3 tools/mirror.py
+```
 
 ## Build
 

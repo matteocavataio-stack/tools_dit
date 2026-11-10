@@ -12,7 +12,9 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.MimeTypeMap
 import android.webkit.WebResourceError
+import android.webkit.WebResourceResponse
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -46,6 +48,10 @@ class ToolActivity : Activity() {
     private lateinit var errorView: View
     private lateinit var startUrl: String
     private var failed = false
+
+    // true = usa sempre la copia incorporata nell'app (nessuna rete).
+    @Volatile private var forceOffline = false
+    private var retriedOffline = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
@@ -131,14 +137,14 @@ class ToolActivity : Activity() {
             isClickable = true
         }
         v.addView(TextView(this).apply {
-            text = "Nessuna connessione"
+            text = "Pagina non disponibile"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             setTextColor(getColor(R.color.text))
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
         })
         v.addView(TextView(this).apply {
-            text = "Questo strumento ha bisogno di internet per caricarsi. Controlla la rete e riprova."
+            text = "Non riesco a caricare questo strumento. Riprova."
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(getColor(R.color.dim))
             gravity = Gravity.CENTER
@@ -153,12 +159,59 @@ class ToolActivity : Activity() {
 
     private fun isOnline(): Boolean {
         val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-        val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-        return caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    // --- Copia offline: i file del sito sono in assets/site/ (vedi tools/mirror.py) ---
+
+    private fun assetPathFor(uri: Uri): String? {
+        if (uri.scheme != "https" || uri.host != HOST) return null
+        var path = uri.path ?: return null
+        if (path.contains("..")) return null
+        if (path.endsWith("/")) path += "index.html"
+        else if (!path.substringAfterLast('/').contains('.')) path += "/index.html"
+        return "site$path"
+    }
+
+    private fun mimeFor(path: String): String = when (path.substringAfterLast('.').lowercase()) {
+        "html" -> "text/html"
+        "js", "mjs" -> "text/javascript"
+        "css" -> "text/css"
+        "json", "webmanifest" -> "application/json"
+        "svg" -> "image/svg+xml"
+        "woff2" -> "font/woff2"
+        "woff" -> "font/woff"
+        "webp" -> "image/webp"
+        else -> MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(path.substringAfterLast('.').lowercase())
+            ?: "application/octet-stream"
+    }
+
+    private fun localResponse(request: WebResourceRequest): WebResourceResponse? {
+        val asset = assetPathFor(request.url) ?: return null
+        val isPage = asset.endsWith(".html")
+        // Pagine HTML: con rete si prende la versione aggiornata dal sito,
+        // senza rete (o se il caricamento e' fallito) quella incorporata.
+        // File statici (js/css/font/immagini): sempre dalla copia locale, e' piu' veloce.
+        if (isPage && !forceOffline && isOnline()) return null
+        val mime = mimeFor(asset)
+        val encoding = if (mime.startsWith("text/") || mime == "application/json" || mime == "image/svg+xml") "utf-8" else null
+        return try {
+            WebResourceResponse(mime, encoding, assets.open(asset))
+        } catch (_: java.io.IOException) {
+            // Non incorporato: con rete va in rete, senza rete risposta vuota 404.
+            if (!forceOffline && isOnline()) null
+            else WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(),
+                java.io.ByteArrayInputStream(ByteArray(0)))
+        }
     }
 
     private fun load() {
         failed = false
+        retriedOffline = false
+        forceOffline = !isOnline()
         errorView.visibility = View.GONE
         webView.visibility = View.VISIBLE
         webView.loadUrl(startUrl)
@@ -167,13 +220,16 @@ class ToolActivity : Activity() {
     private val client = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val uri = request.url
-            // Pagine del sito ditworld.com restano nell'app, il resto va al browser.
-            if (uri.scheme == "https" && (uri.host == HOST || uri.host?.endsWith(".$HOST") == true)) return false
+            // Solo le pagine /tools/ restano nell'app (disponibili offline), il resto va al browser.
+            if (uri.scheme == "https" && uri.host == HOST && (uri.path ?: "").startsWith("/tools")) return false
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
             } catch (_: Exception) { /* nessuna app disponibile */ }
             return true
         }
+
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+            localResponse(request)
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             view.evaluateJavascript(HIDE_CHROME_JS, null)
@@ -188,7 +244,15 @@ class ToolActivity : Activity() {
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-            if (request.isForMainFrame) failed = true
+            if (!request.isForMainFrame) return
+            if (!forceOffline && !retriedOffline) {
+                // Rete instabile: riprova subito con la copia incorporata.
+                retriedOffline = true
+                forceOffline = true
+                view.post { view.loadUrl(request.url.toString()) }
+            } else {
+                failed = true
+            }
         }
     }
 
