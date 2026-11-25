@@ -52,7 +52,7 @@ class FakeServer {
                 fun send(code: Int, json: String) = okhttp3.mockwebserver.MockResponse().setResponseCode(code)
                     .setHeader("Content-Type", "application/json").setBody(json)
                 return when (path) {
-                    "/api/health" -> send(200, """{"ok":true,"db":true,"ai":true,"secret":true}""")
+                    "/api/health" -> send(200, """{"ok":true,"db":true,"ai":true,"secret":true,"providers":[{"name":"workers-ai","configured":true},{"name":"gemini","configured":false}]}""")
                     "/api/register" -> { registerCount++; send(200, """{"token":"tok-$registerCount","dailyLimit":30}""") }
                     else -> if (auth == null || (rejectFirstToken && auth == "Bearer tok-1")) send(401, """{"code":"unauthorized","message":"Identita' non valida"}""")
                     else when (path) {
@@ -136,7 +136,8 @@ class AiClientTest {
     }
 
     @Test fun healthReportsConfiguration() = runBlocking {
-        assertTrue(client.health().contains("AI attiva"))
+        val h = client.health()
+        assertTrue(h.contains("AI attiva")); assertTrue(h.contains("Cloudflare (pronto)")); assertTrue(h.contains("Google Gemini (non configurato)"))
     }
 }
 

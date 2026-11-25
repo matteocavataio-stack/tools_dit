@@ -114,6 +114,7 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
     var stepCut by remember { mutableStateOf(Step.WAIT) }
     var stepAi by remember { mutableStateOf(Step.WAIT) }
     var source by remember { mutableStateOf("") }      // "ai" | "local"
+    var aiProvider by remember { mutableStateOf("") }
     var aiError by remember { mutableStateOf<String?>(null) }
     var loadingPhoto by remember { mutableStateOf(false) }
 
@@ -184,7 +185,7 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
                 val ai = aiJob.await()
                 if (stepAi != Step.SKIP) stepAi = Step.DONE
                 val localCat = labelJob.await()
-                if (ai != null) { applyAi(ai); source = "ai" }
+                if (ai != null) { applyAi(ai); source = "ai"; aiProvider = ai.provider }
                 else {
                     category = localCat ?: Category.TOP
                     colorHex = Colors.dominant(cut ?: bmp)
@@ -269,7 +270,7 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
                         }
                     }
                     when (source) {
-                        "ai" -> Banner("✨ Riconosciuto dall'AI: controlla e correggi se serve.", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                        "ai" -> Banner("✨ Riconosciuto dall'AI" + (aiProvider.takeIf { it.isNotBlank() }?.let { " (${com.mycloset.app.logic.AiClient.providerLabel(it)})" } ?: "") + ": controlla e correggi se serve.", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
                         "local" -> Banner(
                             (if (aiError != null) "AI non disponibile (${aiError}). " else "") + "Riconosciuto sul telefono: controlla bene i dati.",
                             MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)

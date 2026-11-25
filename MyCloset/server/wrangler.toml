@@ -8,12 +8,22 @@ binding = "DB"
 database_name = "mycloset-api"
 database_id = "SOSTITUISCI-CON-L-ID-DI-D1"   # lo stampa «npx wrangler d1 create mycloset-api»
 
+# Cloudflare Workers AI (gratuito nei limiti giornalieri del piano): nessuna chiave da impostare.
+[ai]
+binding = "AI"
+
 # Modelli e limiti (modificabili senza toccare il codice, poi «npx wrangler deploy»).
 [vars]
-MODEL_VISION = "claude-opus-5-5"   # analisi foto e controllo acquisti
-MODEL_CHAT = "claude-opus-5-5"     # stilista in chat
-DAILY_LIMIT = "30"                 # richieste AI al giorno per ogni installazione dell'app
-GLOBAL_DAILY_LIMIT = "300"        # tetto giornaliero totale (protegge dalla spesa fuori controllo)
+# Ordine dei provider AI: si prova il primo, se finisce la quota o fallisce si passa al successivo.
+#   workers-ai = Cloudflare (gratis nei limiti)   gemini = Google (gratis nei limiti, serve GEMINI_API_KEY)
+#   anthropic  = Claude (A PAGAMENTO, serve ANTHROPIC_API_KEY): aggiungilo in fondo solo se vuoi una riserva a pagamento.
+AI_PROVIDERS = "workers-ai,gemini"
+WORKERS_AI_MODEL = "@cf/google/gemma-4-26b-a4b-it"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+MODEL_VISION = "claude-opus-5-5"   # solo se usi "anthropic": analisi foto e controllo acquisti
+MODEL_CHAT = "claude-opus-5-5"     # solo se usi "anthropic": stilista in chat
+DAILY_LIMIT = "60"                 # richieste AI al giorno per ogni installazione dell'app
+GLOBAL_DAILY_LIMIT = "1000"        # tetto giornaliero totale
 REGISTER_LIMIT = "20"              # nuove installazioni al giorno per indirizzo IP
 USE_FALLBACKS = "0"                # "1" = riprova su altro modello se la richiesta viene rifiutata (vedi README)
 

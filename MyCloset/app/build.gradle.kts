@@ -12,8 +12,8 @@ android {
         applicationId = "com.mycloset.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") } // telefoni ARM: niente librerie x86
     }
 

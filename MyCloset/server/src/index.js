@@ -5,10 +5,10 @@
 //   POST /api/ai/chat       stilista in chat (usa l'armadio inviato dall'app)
 //   POST /api/ai/purchase   «devo comprarlo?» → verdetto confrontando foto e armadio
 // Segreti (Worker secrets): ANTHROPIC_API_KEY e APP_SECRET. Nessun dato dell'utente viene salvato: solo contatori d'uso.
-import Anthropic from '@anthropic-ai/sdk';
 import { AiError, analyzeItem, chat, purchaseCheck } from './ai.js';
 import { hashIp, issueToken, verifyToken } from './auth.js';
-import { allow, maybeCleanup, today } from './limits.js';
+import { allow, bump, maybeCleanup, today } from './limits.js';
+import { configured, providerOrder } from './providers.js';
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const json = (status, body, extra = {}) => new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extra } });
@@ -63,7 +63,8 @@ export async function handle(request, env, deps = {}) {
       try { await env.DB.prepare('SELECT 1 AS ok').first(); } catch (e) {
         log('health_failed', { error: String(e?.message ?? e) }); return json(503, { ok: false, db: false });
       }
-      return json(200, { ok: true, db: true, ai: !!env.ANTHROPIC_API_KEY, secret: !!env.APP_SECRET });
+      const cfg = configured(env), order = providerOrder(env);
+      return json(200, { ok: true, db: true, ai: order.some((p) => cfg[p]), secret: !!env.APP_SECRET, providers: order.map((p) => ({ name: p, configured: !!cfg[p] })) });
     }
 
     if (request.method === 'POST' && path === '/api/register') {
@@ -77,7 +78,7 @@ export async function handle(request, env, deps = {}) {
     }
 
     if (request.method === 'POST' && path.startsWith('/api/ai/')) {
-      if (!env.ANTHROPIC_API_KEY || !env.APP_SECRET) throw new AiError(500, 'server_config', 'Server AI non configurato.');
+      if (!env.APP_SECRET || !providerOrder(env).some((p) => configured(env)[p])) throw new AiError(500, 'server_config', 'Server AI non configurato.');
       const installId = await verifyToken(env.APP_SECRET, request.headers.get('authorization'));
       if (!installId) return fail(401, 'unauthorized', 'Identita\' non valida: riapri l\'app per registrarti di nuovo.');
 
@@ -89,17 +90,17 @@ export async function handle(request, env, deps = {}) {
       }
       maybeCleanup(env.DB, day);
 
-      const client = deps.client ?? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined });
       const body = await readJSON(request);
       const route = path.slice('/api/ai/'.length);
-      if (route === 'analyze') return json(200, await analyzeItem(client, env, parseImage(body)));
+      const done = async (result) => { try { await bump(env.DB, 'p:' + result.provider, day); } catch { /* statistica non critica */ } return json(200, result); };
+      if (route === 'analyze') return done(await analyzeItem(deps, env, parseImage(body)));
       if (route === 'chat') {
-        return json(200, await chat(client, env, {
+        return done(await chat(deps, env, {
           messages: parseMessages(body), closet: parseCloset(body), weather: toStr(body.weather, 200),
           today: new Date(now).toISOString().slice(0, 10),
         }));
       }
-      if (route === 'purchase') return json(200, await purchaseCheck(client, env, { ...parseImage(body), closet: parseCloset(body) }));
+      if (route === 'purchase') return done(await purchaseCheck(deps, env, { ...parseImage(body), closet: parseCloset(body) }));
     }
     return fail(404, 'not_found', 'Non trovato.');
   } catch (e) {

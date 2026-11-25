@@ -17,7 +17,7 @@ Armadio digitale + stilista personale, tutto sul telefono. Funzioni ispirate ad 
 - **Analisi foto**: dopo la foto, Claude compila la scheda (nome, categoria, colore, stagioni, occasioni, materiale, marca se visibile).
 - **Chat con lo stilista**: conosce il tuo armadio e il meteo, propone outfit usando solo capi che hai davvero (si possono indossare o salvare con un tocco).
 - **«Devo comprarlo?»**: parere dell'AI con capi simili già posseduti e abbinamenti.
-- La chiave Anthropic sta solo sul server (Cloudflare Worker + D1, vedi `server/README.md`); l'app parla col server con un token anonimo. Senza server (o senza rete) l'app funziona comunque: restano riconoscimento e stilista "a regole" sul telefono.
+- Provider AI gratuiti in cascata: Cloudflare Workers AI e poi Google Gemini (se uno finisce la quota si passa all'altro); Claude resta opzionale e a pagamento. Il server (Cloudflare Worker + D1, vedi `server/README.md`) tiene le chiavi; l'app parla col server con un token anonimo. Senza server (o senza rete) l'app funziona comunque: restano riconoscimento e stilista "a regole" sul telefono.
 - Indirizzo di serie: `https://mycloset-api.matteocav.workers.dev` (modificabile in Impostazioni → Stilista AI → Verifica).
 
 ## Cosa NON c'è

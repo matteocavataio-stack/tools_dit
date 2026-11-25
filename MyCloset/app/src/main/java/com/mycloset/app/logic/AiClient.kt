@@ -15,6 +15,7 @@ import java.net.URL
 class AiException(val code: String, message: String) : Exception(message)
 
 data class AiAnalysis(
+    val provider: String = "",
     val name: String, val category: String, val colorHex: String, val colorName: String, val brand: String,
     val seasons: List<String>, val occasions: List<String>, val material: String, val pattern: String, val notes: String,
 )
@@ -66,8 +67,13 @@ class AiClient(private val prefs: Prefs) {
             val (code, text) = request("GET", "/api/health", null, null)
             if (code != 200) throw failure(code, text)
             val j = JSONObject(text)
-            if (!j.optBoolean("ai") || !j.optBoolean("secret")) "Server raggiungibile, ma l'AI non e' ancora configurata (mancano i segreti del Worker)."
-            else "Server raggiungibile e AI attiva."
+            val list = j.optJSONArray("providers")
+            val detail = if (list == null) "" else (0 until list.length()).joinToString(", ") {
+                val o = list.getJSONObject(it)
+                providerLabel(o.optString("name")) + if (o.optBoolean("configured")) " (pronto)" else " (non configurato)"
+            }
+            if (!j.optBoolean("ai") || !j.optBoolean("secret")) "Server raggiungibile, ma l'AI non e' ancora configurata (mancano segreti o provider)." + if (detail.isNotEmpty()) " $detail." else ""
+            else "Server raggiungibile e AI attiva." + if (detail.isNotEmpty()) " Provider in ordine: $detail." else ""
         } catch (e: AiException) { throw e
         } catch (e: Exception) { throw AiException("network", "Server non raggiungibile: controlla l'indirizzo e la connessione.") }
     }
@@ -94,6 +100,7 @@ class AiClient(private val prefs: Prefs) {
     suspend fun analyze(photo: Bitmap): AiAnalysis {
         val j = post("/api/ai/analyze", imageBody(photo))
         return AiAnalysis(
+            j.optString("provider"),
             j.optString("name"), j.optString("category"), j.optString("colorHex"), j.optString("colorName"), j.optString("brand"),
             strings(j.optJSONArray("seasons")), strings(j.optJSONArray("occasions")),
             j.optString("material"), j.optString("pattern"), j.optString("notes"),
@@ -119,6 +126,10 @@ class AiClient(private val prefs: Prefs) {
     }
 
     companion object {
+        fun providerLabel(name: String) = when (name) {
+            "workers-ai" -> "Cloudflare"; "gemini" -> "Google Gemini"; "anthropic" -> "Claude"; else -> name
+        }
+
         /** JPEG ridimensionato (max 768 px) su fondo chiaro: le foto con sfondo rimosso sono PNG trasparenti. */
         fun encodeImage(src: Bitmap): String {
             val scale = minOf(1f, 768f / maxOf(src.width, src.height))

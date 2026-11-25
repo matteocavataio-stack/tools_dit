@@ -418,7 +418,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             Spacer(Modifier.height(8.dp))
             Text("Stilista AI", fontWeight = FontWeight.SemiBold)
-            Text("Analisi automatica delle foto, chat con lo stilista e parere sugli acquisti. Le foto e l'elenco dei capi vengono inviati al tuo server, che li passa a Claude; non vengono salvati.",
+            Text("Analisi automatica delle foto, chat con lo stilista e parere sugli acquisti. Le foto e l'elenco dei capi vengono inviati al tuo server, che li passa a un servizio AI (Cloudflare e/o Google Gemini, in base a come l'hai configurato); non vengono salvati dal server. Con il livello gratuito di Gemini, Google può usare i contenuti per migliorare i suoi prodotti.",
                 style = MaterialTheme.typography.bodySmall)
             val aiOn by vm.aiEnabled.collectAsState()
             val aiUrl by vm.aiUrl.collectAsState()
@@ -458,7 +458,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
             Spacer(Modifier.height(16.dp))
-            Text("MyCloset 1.2", fontWeight = FontWeight.SemiBold)
+            Text("MyCloset 1.3", fontWeight = FontWeight.SemiBold)
             Text("I tuoi dati restano sul telefono. Le foto vengono elaborate sul dispositivo; la rete serve solo per il meteo (Open-Meteo) e per scaricare, al primo uso, il modello che rimuove lo sfondo.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

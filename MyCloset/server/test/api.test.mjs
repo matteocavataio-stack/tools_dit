@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { handle } from '../src/index.js';
+import { resetCooldowns } from '../src/providers.js';
 
 // Piccolo D1 finto sopra node:sqlite (stessa interfaccia: prepare().bind().first()/run()).
 function fakeD1() {
@@ -15,7 +16,7 @@ function fakeD1() {
 }
 
 const BIG = 'A'.repeat(400); // finto base64 di una foto
-const env = (over = {}) => ({ DB: fakeD1(), ANTHROPIC_API_KEY: 'sk-test', APP_SECRET: 's3cret-di-prova', MODEL_VISION: 'claude-opus-5-5',
+const env = (over = {}) => ({ DB: fakeD1(), AI_PROVIDERS: 'anthropic', ANTHROPIC_API_KEY: 'sk-test', APP_SECRET: 's3cret-di-prova', MODEL_VISION: 'claude-opus-5-5',
   MODEL_CHAT: 'claude-opus-5-5', DAILY_LIMIT: '3', GLOBAL_DAILY_LIMIT: '100', REGISTER_LIMIT: '2', ...over });
 
 function fakeClient(reply, calls = []) {
@@ -41,9 +42,10 @@ const closet = [
 ];
 
 test('health', async () => {
+  resetCooldowns();
   const r = await call(env(), 'GET', '/api/health');
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, db: true, ai: true, secret: true });
+  assert.deepEqual(await r.json(), { ok: true, db: true, ai: true, secret: true, providers: [{ name: 'anthropic', configured: true }] });
 });
 
 test('registrazione: token valido, manomesso rifiutato, limite per IP', async () => {
@@ -139,11 +141,11 @@ test('errori del servizio AI → messaggi chiari', async () => {
   const busy = await post(fakeClient(() => { throw Object.assign(new Error('x'), { status: 429 }); }));
   assert.equal(busy.status, 503);
   const key = await post(fakeClient(() => { throw Object.assign(new Error('x'), { status: 401 }); }));
-  assert.equal((await key.json()).code, 'server_config');
+  assert.equal((await key.json()).code, 'server_config'); resetCooldowns();
   const garbage = await post(fakeClient(() => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'non json' }] })));
   assert.equal(garbage.status, 502);
   const cut = await post(fakeClient(() => ({ stop_reason: 'max_tokens', content: [] })));
-  assert.equal((await cut.json()).code, 'truncated');
+  assert.equal((await cut.json()).code, 'bad_output');
 });
 
 test('fallback opzionali: solo con USE_FALLBACKS=1 usa la via beta', async () => {
@@ -155,5 +157,6 @@ test('fallback opzionali: solo con USE_FALLBACKS=1 usa la via beta', async () =>
 
 test('server non configurato e rotte sconosciute', async () => {
   assert.equal((await call(env({ ANTHROPIC_API_KEY: '' }), 'POST', '/api/ai/chat', {}, 'x')).status, 500);
+  resetCooldowns();
   assert.equal((await call(env(), 'GET', '/api/boh')).status, 404);
 });

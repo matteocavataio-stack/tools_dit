@@ -173,7 +173,7 @@ class AddItemFlowTest {
         if (dir != null) File(dir).mkdirs()
         val srv = FakeServer()
         srv.analyzeDelayMs = 4000
-        srv.analyzeJson = """{"name":"T-shirt rossa a maniche corte","category":"TOP","colorHex":"#C41E2A","colorName":"Rosso","brand":"","seasons":["SPRING","SUMMER"],"occasions":["CASUAL","HOME"],"material":"Cotone","pattern":"Tinta unita","notes":""}"""
+        srv.analyzeJson = """{"name":"T-shirt rossa a maniche corte","category":"TOP","colorHex":"#C41E2A","colorName":"Rosso","brand":"","seasons":["SPRING","SUMMER"],"occasions":["CASUAL","HOME"],"material":"Cotone","pattern":"Tinta unita","notes":"","provider":"workers-ai"}"""
         try {
             val app = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
             val vm = AppViewModel(app)
