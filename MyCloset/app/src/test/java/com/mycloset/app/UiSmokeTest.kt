@@ -102,8 +102,8 @@ class UiSmokeTest {
         waitText("Costo/uso")
         rule.onNodeWithText("Non l'hai ancora indossato.").assertIsDisplayed()
         rule.activity.onBackPressedDispatcher.onBackPressed()
-        rule.onNodeWithContentDescription("Aggiungi capo").performClick()
-        waitText("Nuovo capo")
+        rule.onNodeWithText("Aggiungi", useUnmergedTree = true).performClick()
+        waitText("Fotografa il capo")
         rule.onNodeWithText("Scatta foto").assertIsDisplayed()
         rule.activity.onBackPressedDispatcher.onBackPressed()
         rule.onNodeWithText("Oggi").performClick()
@@ -117,7 +117,7 @@ class UiSmokeTest {
             rule.activity.onBackPressedDispatcher.onBackPressed()
             waitText("Cosa mi metto oggi?")
         }
-        rule.onNodeWithText("Impostazioni").performClick()
+        rule.onNodeWithContentDescription("Impostazioni").performScrollTo().performClick()
         waitText("Città per il meteo")
     }
 }

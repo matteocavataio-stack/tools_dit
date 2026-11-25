@@ -3,7 +3,7 @@
 Armadio digitale + stilista personale, tutto sul telefono. Funzioni ispirate ad Acloset, senza limite di capi e senza account.
 
 ## Funzioni
-- **Armadio**: foto da fotocamera/galleria, **rimozione sfondo** automatica, riconoscimento di categoria e colore, importazione multipla (fino a 20 foto), ricerca e filtri (categoria, colore, marca, preferiti, mai indossati), ordinamento.
+- **Armadio**: scatti una foto → in automatico toglie lo sfondo e (con l'AI) riconosce tipo di capo, colore, stagioni e occasioni e **compila la scheda**: tu confermi o correggi. Importazione multipla (fino a 20 foto), ricerca e filtri, ordinamento.
 - **Scheda capo**: nome, categoria, colore, marca, prezzo, data d'acquisto, stagioni, occasioni, materiale, fantasia, note; volte indossato, **costo per utilizzo**, ultima volta.
 - **Outfit**: tela libera (sposta, ingrandisci, ruota i capi), suggerimento automatico, preferiti, occasioni.
 - **Calendario**: cosa hai indossato / pianificato ogni giorno, con anteprime.

@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mycloset.app.ui.AppIcons
 import com.mycloset.app.ui.CalendarScreen
 import com.mycloset.app.ui.ClosetScreen
 import com.mycloset.app.ui.ItemDetailScreen
@@ -47,11 +49,11 @@ import com.mycloset.app.ui.TripsScreen
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab("today", "Oggi", Icons.Filled.Home),
-    Tab("closet", "Armadio", Icons.Filled.List),
-    Tab("outfits", "Outfit", Icons.Filled.Favorite),
-    Tab("calendar", "Calendario", Icons.Filled.DateRange),
-    Tab("stats", "Statistiche", Icons.Filled.Info),
+    Tab("today", "Oggi", AppIcons.Today),
+    Tab("closet", "Armadio", AppIcons.Hanger),
+    Tab("outfits", "Outfit", AppIcons.Shirt),
+    Tab("calendar", "Calendario", AppIcons.Calendar),
+    Tab("stats", "Statistiche", AppIcons.Chart),
 )
 
 class MainActivity : ComponentActivity() {
@@ -77,10 +79,14 @@ private fun App(vm: AppViewModel) {
     val longArg = { name: String -> listOf(navArgument(name) { type = NavType.LongType }) }
 
     Scaffold(bottomBar = {
-        if (route in tabs.map { it.route }) NavigationBar {
+        if (route in tabs.map { it.route }) NavigationBar(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
             tabs.forEach { t ->
                 NavigationBarItem(selected = route == t.route, onClick = { nav.goTab(t.route) },
-                    icon = { Icon(t.icon, t.label) }, label = { Text(t.label, maxLines = 1) })
+                    icon = { Icon(t.icon, t.label) }, label = { Text(t.label, maxLines = 1, style = androidx.compose.material3.MaterialTheme.typography.labelSmall) },
+                    colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                        indicatorColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+                        selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                        selectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.primary))
             }
         }
     }) { pad ->

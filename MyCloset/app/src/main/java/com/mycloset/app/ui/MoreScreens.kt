@@ -91,8 +91,8 @@ fun MatchScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showPicker by remember { mutableStateOf(false) }
     val report: MatchReport? = if (picked.size >= 2) Stylist.match(picked) else null
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Questo abbinamento va bene?") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text("Questo abbinamento va bene?") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } })
     }) { pad ->
         Column(Modifier.padding(pad).verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -148,8 +148,8 @@ fun PurchaseScreen(vm: AppViewModel, onBack: () -> Unit, onOpenItem: (Long) -> U
     var aiResult by remember { mutableStateOf<com.mycloset.app.logic.AiPurchase?>(null) }
     var aiError by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Devo comprarlo?") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text("Devo comprarlo?") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } })
     }) { pad ->
         Column(Modifier.padding(pad).verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -253,8 +253,8 @@ fun TripsScreen(vm: AppViewModel, onBack: () -> Unit, onOpen: (Long) -> Unit) {
     val trips by vm.trips.collectAsState()
     val tripItems by vm.tripItems.collectAsState()
     var showNew by remember { mutableStateOf(false) }
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Viaggi") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, 
+        topBar = { AppTopBar(title = { Text("Viaggi") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } }) },
         floatingActionButton = { FloatingActionButton(onClick = { showNew = true }) { Icon(Icons.Filled.Add, "Nuovo viaggio") } },
     ) { pad ->
@@ -321,8 +321,8 @@ fun TripDetailScreen(vm: AppViewModel, tripId: Long, onBack: () -> Unit) {
     val mine = tripItems.filter { it.tripId == tripId }
     val days = trip?.let { (ChronoUnit.DAYS.between(LocalDate.ofEpochDay(it.startDate), LocalDate.ofEpochDay(it.endDate)) + 1).toInt() } ?: 1
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text(trip?.name ?: "") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text(trip?.name ?: "") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
             actions = { IconButton(onClick = { showDelete = true }) { Icon(Icons.Filled.Delete, "Elimina viaggio") } })
     }) { pad ->
@@ -391,8 +391,8 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
     val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) confirmImport = uri }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Impostazioni") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text("Impostazioni") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } })
     }) { pad ->
         Column(Modifier.padding(pad).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,7 +458,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
             Spacer(Modifier.height(16.dp))
-            Text("MyCloset 1.1", fontWeight = FontWeight.SemiBold)
+            Text("MyCloset 1.2", fontWeight = FontWeight.SemiBold)
             Text("I tuoi dati restano sul telefono. Le foto vengono elaborate sul dispositivo; la rete serve solo per il meteo (Open-Meteo) e per scaricare, al primo uso, il modello che rimuove lo sfondo.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

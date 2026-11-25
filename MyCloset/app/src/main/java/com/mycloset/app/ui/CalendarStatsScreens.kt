@@ -81,7 +81,7 @@ fun CalendarScreen(vm: AppViewModel, onOpenOutfit: (Long) -> Unit, onOpenItem: (
     val today = LocalDate.now()
     val byDay = remember(logs) { logs.groupBy { it.date } }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Calendario") }) }) { pad ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { AppTopBar(title = { Text("Calendario") }) }) { pad ->
         Column(Modifier.padding(pad).verticalScroll(rememberScrollState())) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { month = month.minusMonths(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Mese precedente") }
@@ -107,11 +107,13 @@ fun CalendarScreen(vm: AppViewModel, onOpenOutfit: (Long) -> Unit, onOpenItem: (
                             val outfit = entries.firstNotNullOfOrNull { e -> outfits.firstOrNull { it.id == e.outfitId } }
                             val firstItem = entries.firstOrNull()?.let { e -> items.firstOrNull { it.id == e.itemId } }
                             Box(
-                                Modifier.weight(1f).aspectRatio(0.72f).clip(RoundedCornerShape(10.dp))
+                                Modifier.weight(1f).aspectRatio(0.72f).clip(RoundedCornerShape(14.dp))
                                     .background(if (inMonth) Paper else Color.Transparent)
-                                    .border(if (d == selected) 2.dp else if (d == today) 1.dp else 0.dp,
-                                        if (d == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                                        RoundedCornerShape(10.dp))
+                                    .then(when {
+                                        d == selected -> Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                                        d == today -> Modifier.border(1.5.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(14.dp))
+                                        else -> Modifier
+                                    })
                                     .clickable { selected = d; if (!inMonth) month = YearMonth.from(d) }
                             ) {
                                 if (inMonth) {
@@ -219,7 +221,7 @@ fun StatsScreen(vm: AppViewModel, onOpenItem: (Long) -> Unit, onOpenCloset: () -
     val s = remember(items, logs) { Stats(items, logs) }
     val f by vm.filter.collectAsState()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Statistiche") }) }) { pad ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = { AppTopBar(title = { Text("Statistiche") }) }) { pad ->
         if (s.owned.isEmpty()) {
             Box(Modifier.padding(pad)) { EmptyState("Ancora nessun dato", "Aggiungi capi con il prezzo e registra cosa indossi: qui vedrai costo per utilizzo, capi mai usati e molto altro.") }
             return@Scaffold

@@ -98,8 +98,8 @@ fun StylistScreen(vm: AppViewModel, onBack: () -> Unit, onOpenItem: (Long) -> Un
 
     fun send(t: String) { vm.sendChat(t); input = "" }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Stilista AI") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text("Stilista AI") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
             actions = { if (msgs.isNotEmpty()) TextButton(onClick = { vm.clearChat() }) { Text("Nuova chat") } })
     }, bottomBar = {
@@ -115,7 +115,7 @@ fun StylistScreen(vm: AppViewModel, onBack: () -> Unit, onOpenItem: (Long) -> Un
             if (!aiOn) Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("L'AI è disattivata.", Modifier.weight(1f)); TextButton(onClick = onSettings) { Text("Impostazioni") }
             }
-            LazyColumn(Modifier.weight(1f), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+            LazyColumn(Modifier.weight(1f), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item {
                     Text("Ciao! Conosco il tuo armadio (${items.count { it.status == "OWNED" }} capi) e il meteo di oggi. Chiedimi cosa mettere, come abbinare un capo o cosa riscoprire.",

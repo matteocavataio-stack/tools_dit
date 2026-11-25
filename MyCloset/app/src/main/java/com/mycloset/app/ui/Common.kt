@@ -69,7 +69,54 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-val Paper = Color(0xFFF7F4EF) // sfondo "foto" dei capi (uguale alla tela degli outfit)
+val Paper = Color(0xFFF5F1EB) // sfondo "foto" dei capi (chiaro anche col tema scuro: sono foto di prodotto)
+
+/** Barra superiore semplice: titolo grande a sinistra, nessuna barra colorata. */
+@Composable
+fun AppTopBar(
+    title: @Composable () -> Unit,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+) {
+    Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        navigationIcon()
+        Box(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            androidx.compose.material3.ProvideTextStyle(MaterialTheme.typography.headlineSmall) { title() }
+        }
+        actions()
+    }
+}
+
+/** Pulsante principale: grande, arrotondato, a tutta larghezza. */
+@Composable
+fun BigButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    Button(onClick = onClick, enabled = enabled, modifier = modifier.fillMaxWidth().height(54.dp),
+        shape = RoundedCornerShape(27.dp)) { Text(text, style = MaterialTheme.typography.titleMedium) }
+}
+
+/** Scheda bianca morbida (senza bordo). */
+@Composable
+fun SoftCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    val shape = RoundedCornerShape(24.dp)
+    if (onClick != null) Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors) { content() }
+    else Card(modifier = modifier, shape = shape, colors = colors) { content() }
+}
+
+/** Interruttore a due voci (es. Armadio | Desideri). */
+@Composable
+fun Segmented(options: List<String>, selected: Int, modifier: Modifier = Modifier, onSelect: (Int) -> Unit) {
+    Row(modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant).padding(4.dp)) {
+        options.forEachIndexed { i, label ->
+            Box(Modifier.weight(1f).clip(RoundedCornerShape(50))
+                .background(if (i == selected) MaterialTheme.colorScheme.surface else Color.Transparent)
+                .clickable { onSelect(i) }.padding(vertical = 9.dp), contentAlignment = Alignment.Center) {
+                Text(label, style = MaterialTheme.typography.labelLarge,
+                    color = if (i == selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
 
 @Composable
 fun ItemImage(item: Item, modifier: Modifier = Modifier, scale: ContentScale = ContentScale.Fit) {
@@ -102,27 +149,26 @@ fun ColorDot(hex: String, size: Int = 18, modifier: Modifier = Modifier) {
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        modifier = modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 8.dp))
 }
 
 @Composable
-fun ItemTile(item: Item, selected: Boolean = false, badge: String? = null, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = Paper),
-        border = if (selected) BorderStroke(3.dp, MaterialTheme.colorScheme.primary) else null,
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(0.85f)) {
-            ItemImage(item, Modifier.fillMaxSize().padding(8.dp))
+fun ItemTile(item: Item, selected: Boolean = false, badge: String? = null, showName: Boolean = true, onClick: () -> Unit) {
+    Column(Modifier.clickable(onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(0.88f).clip(RoundedCornerShape(22.dp)).background(Paper)
+            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(22.dp)) else Modifier)) {
+            ItemImage(item, Modifier.fillMaxSize().padding(10.dp))
             if (item.favorite) Icon(Icons.Filled.Favorite, null, tint = Color(0xFFE11D48),
-                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(16.dp))
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(16.dp))
             if (selected) Icon(Icons.Filled.Check, null, tint = Color.White,
-                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).size(22.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape).padding(3.dp))
+                modifier = Modifier.align(Alignment.TopStart).padding(8.dp).size(24.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape).padding(4.dp))
             if (badge != null) Text(badge, color = Color.White, style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.align(Alignment.BottomStart).padding(6.dp)
-                    .background(Color(0xAA000000), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                    .background(Color(0x99000000), RoundedCornerShape(10.dp)).padding(horizontal = 7.dp, vertical = 2.dp))
         }
+        if (showName) Text(item.name, Modifier.padding(start = 4.dp, top = 5.dp), maxLines = 1,
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -135,7 +181,17 @@ fun ChipRow(content: @Composable () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(selected = selected, onClick = onClick, label = { Text(label) })
+    FilterChip(
+        selected = selected, onClick = onClick, label = { Text(label) }, shape = RoundedCornerShape(50),
+        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+        border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
+            enabled = true, selected = selected, borderColor = MaterialTheme.colorScheme.outlineVariant,
+            selectedBorderColor = Color.Transparent),
+    )
 }
 
 @Composable

@@ -38,6 +38,8 @@ class FakeServer {
     var rejectFirstToken = false
     var registerCount = 0
     var chatOutfitIds = listOf(1, 2)
+    var analyzeJson: String? = null
+    var analyzeDelayMs = 0L
     private val server = okhttp3.mockwebserver.MockWebServer()
     val url get() = server.url("/").toString().trimEnd('/')
 
@@ -54,7 +56,7 @@ class FakeServer {
                     "/api/register" -> { registerCount++; send(200, """{"token":"tok-$registerCount","dailyLimit":30}""") }
                     else -> if (auth == null || (rejectFirstToken && auth == "Bearer tok-1")) send(401, """{"code":"unauthorized","message":"Identita' non valida"}""")
                     else when (path) {
-                        "/api/ai/analyze" -> send(200, """{"name":"Giacca di jeans","category":"OUTERWEAR","colorHex":"#4A6FA5","colorName":"Denim","brand":"Levis","seasons":["SPRING","AUTUMN"],"occasions":["CASUAL"],"material":"Cotone","pattern":"","notes":""}""")
+                        "/api/ai/analyze" -> if (analyzeJson != null) send(200, analyzeJson!!).setBodyDelay(analyzeDelayMs, java.util.concurrent.TimeUnit.MILLISECONDS) else send(200, """{"name":"Giacca di jeans","category":"OUTERWEAR","colorHex":"#4A6FA5","colorName":"Denim","brand":"Levis","seasons":["SPRING","AUTUMN"],"occasions":["CASUAL"],"material":"Cotone","pattern":"","notes":""}""")
                         "/api/ai/chat" -> send(200, """{"reply":"Oggi ti consiglio jeans e maglia nera.","outfits":[{"title":"Casual","itemIds":$chatOutfitIds,"why":"Colori neutri"}]}""")
                         "/api/ai/purchase" -> send(200, """{"name":"Maglia nera","category":"TOP","colorHex":"#111111","colorName":"Nero","verdict":"skip","summary":"Ne hai già una uguale.","reasons":["Hai già la maglia nera"],"similarIds":[1],"pairsWellIds":[2],"outfitIdeas":[]}""")
                         else -> send(404, """{"code":"not_found","message":"Non trovato"}""")

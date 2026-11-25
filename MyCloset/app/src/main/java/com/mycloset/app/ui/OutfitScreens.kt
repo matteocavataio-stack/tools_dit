@@ -86,12 +86,12 @@ fun OutfitsScreen(vm: AppViewModel, onOpen: (Long) -> Unit, onCreate: () -> Unit
     var occ by remember { mutableStateOf<Occasion?>(null) }
     var favOnly by remember { mutableStateOf(false) }
     val shown = outfits.filter { (occ == null || it.occasion == occ!!.name) && (!favOnly || it.favorite) }
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Outfit") }) },
-        floatingActionButton = { FloatingActionButton(onClick = onCreate) { Icon(Icons.Filled.Add, "Crea outfit") } },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, 
+        topBar = { AppTopBar(title = { Text("Outfit") }) },
+        floatingActionButton = { FloatingActionButton(onClick = onCreate, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) { Icon(Icons.Filled.Add, "Crea outfit") } },
     ) { pad ->
         Column(Modifier.padding(pad)) {
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("Tutti", occ == null && !favOnly) { occ = null; favOnly = false }
                 Chip("♥ Preferiti", favOnly) { favOnly = !favOnly }
@@ -99,8 +99,8 @@ fun OutfitsScreen(vm: AppViewModel, onOpen: (Long) -> Unit, onCreate: () -> Unit
             }
             if (shown.isEmpty()) EmptyState("Nessun outfit",
                 "Crea il tuo primo outfit: scegli i capi dall'armadio e disponili sulla tela, oppure lasciati suggerire un abbinamento.")
-            LazyVerticalGrid(GridCells.Adaptive(150.dp), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 88.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyVerticalGrid(GridCells.Adaptive(150.dp), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 100.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 items(shown, key = { it.id }) { o ->
                     Card(onClick = { onOpen(o.id) }) {
                         Box {
@@ -131,8 +131,8 @@ fun OutfitDetailScreen(vm: AppViewModel, outfitId: Long, onBack: () -> Unit, onE
     var showDelete by remember { mutableStateOf(false) }
     val parts = outfitItems.filter { it.outfitId == outfitId }.mapNotNull { p -> items.firstOrNull { it.id == p.itemId } }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text(outfit?.name?.ifBlank { "Outfit" } ?: "") },
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(title = { Text(outfit?.name?.ifBlank { "Outfit" } ?: "") },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
             actions = {
                 if (outfit != null) {
@@ -229,8 +229,8 @@ fun OutfitEditorScreen(vm: AppViewModel, outfitId: Long, onClose: (Long?) -> Uni
         selected = i.id
     }
 
-    Scaffold(topBar = {
-        TopAppBar(
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, topBar = {
+        AppTopBar(
             title = { Text(if (outfitId == 0L) "Nuovo outfit" else "Modifica outfit") },
             navigationIcon = { IconButton(onClick = { onClose(null) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
             actions = { Button(enabled = board.isNotEmpty() && !saving, onClick = { showSave = true }) { Text("Salva") }; Spacer(Modifier.width(8.dp)) },
