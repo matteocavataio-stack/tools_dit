@@ -54,7 +54,7 @@ import java.util.Locale
 fun TodayScreen(
     vm: AppViewModel,
     onOpenItem: (Long) -> Unit,
-    onSettings: () -> Unit, onMatch: () -> Unit, onPurchase: () -> Unit, onTrips: () -> Unit, onWishlist: () -> Unit,
+    onSettings: () -> Unit, onStylist: () -> Unit, onMatch: () -> Unit, onPurchase: () -> Unit, onTrips: () -> Unit, onWishlist: () -> Unit,
 ) {
     val items by vm.items.collectAsState()
     val logs by vm.wearLogs.collectAsState()
@@ -136,6 +136,7 @@ fun TodayScreen(
             // ---- Strumenti dello stilista ----
             SectionTitle("Il tuo stilista")
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ToolCard("✨ Chiedi allo stilista AI", "Chatta con lo stilista: conosce il tuo armadio e il meteo e ti propone outfit su misura.", onStylist)
                 ToolCard("Questo abbinamento va bene?", "Scegli 2 o più capi e ti dico se i colori e lo stile funzionano.", onMatch)
                 ToolCard("Devo comprarlo?", "Fotografa un capo che vuoi comprare: confronto con ciò che hai già e vedo cosa ci abbineresti.", onPurchase)
                 ToolCard("Valigia per i viaggi", "Prepara la lista dei capi da portare e spunta quelli già in valigia.", onTrips)

@@ -13,7 +13,11 @@ import com.mycloset.app.data.OutfitItem
 import com.mycloset.app.data.Trip
 import com.mycloset.app.data.TripItem
 import com.mycloset.app.data.WearLog
+import com.mycloset.app.logic.AiClient
+import com.mycloset.app.logic.AiException
+import com.mycloset.app.logic.AiOutfit
 import com.mycloset.app.logic.ImageProc
+import com.mycloset.app.logic.Stats
 import com.mycloset.app.logic.Prefs
 import com.mycloset.app.logic.Weather
 import com.mycloset.app.logic.WeatherApi
@@ -37,6 +41,9 @@ data class ClosetFilter(
     val neverWorn: Boolean = false,
 )
 
+/** Messaggio della chat con lo stilista AI. role = "user" | "assistant". */
+data class ChatMsg(val role: String, val text: String, val outfits: List<AiOutfit> = emptyList(), val error: Boolean = false)
+
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     val db = Room.databaseBuilder(app, AppDatabase::class.java, "mycloset.db").build()
     val dao = db.dao()
@@ -54,6 +61,48 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val weatherLoading = MutableStateFlow(false)
     val currency = MutableStateFlow(prefs.currency)
     val city = MutableStateFlow(prefs.city)
+
+    // ---- AI (server MyCloset) ----
+    val ai = AiClient(prefs)
+    val aiEnabled = MutableStateFlow(prefs.aiEnabled)
+    val aiUrl = MutableStateFlow(prefs.aiUrl)
+    val chat = MutableStateFlow<List<ChatMsg>>(emptyList())
+    val chatBusy = MutableStateFlow(false)
+
+    fun setAi(enabled: Boolean, url: String) {
+        prefs.aiEnabled = enabled; prefs.aiUrl = url
+        if (url.trim().trimEnd('/') != aiUrl.value.trim().trimEnd('/')) prefs.aiToken = "" // altro server = altra identita'
+        aiEnabled.value = enabled; aiUrl.value = prefs.aiUrl
+    }
+
+    fun wearsOf(item: Item): Int = Stats(items.value, wearLogs.value).wears(item)
+
+    private fun weatherLine(): String? = weather.value?.let { w ->
+        val d = w.days.firstOrNull()
+        "${w.city}: ${w.temp.toInt()}°C (percepita ${w.feelsLike.toInt()}°C), ${Weather.describe(w.code)}" +
+            (d?.let { ", min ${it.min.toInt()}° max ${it.max.toInt()}°, probabilita' di pioggia ${it.rainPct}%" } ?: "")
+    }
+
+    fun sendChat(text: String) {
+        val q = text.trim()
+        if (q.isEmpty() || chatBusy.value) return
+        chat.value = chat.value + ChatMsg("user", q)
+        chatBusy.value = true
+        viewModelScope.launch {
+            val history = chat.value.filter { !it.error }.takeLast(12).map { it.role to it.text }.dropWhile { it.first != "user" }
+            try {
+                val r = ai.chat(history, items.value, ::wearsOf, weatherLine())
+                chat.value = chat.value + ChatMsg("assistant", r.reply, r.outfits)
+            } catch (e: AiException) {
+                chat.value = chat.value + ChatMsg("assistant", e.message ?: "Errore.", error = true)
+            } catch (e: Exception) {
+                chat.value = chat.value + ChatMsg("assistant", "Qualcosa e' andato storto: riprova.", error = true)
+            }
+            chatBusy.value = false
+        }
+    }
+
+    fun clearChat() { chat.value = emptyList() }
 
     init { refreshWeather() }
 

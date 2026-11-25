@@ -143,6 +143,10 @@ fun PurchaseScreen(vm: AppViewModel, onBack: () -> Unit, onOpenItem: (Long) -> U
         }
     }
     val report: PurchaseReport? = if (bmp != null) Stylist.purchaseCheck(items, category, colorHex) else null
+    val aiOn by vm.aiEnabled.collectAsState()
+    var aiBusy by remember { mutableStateOf(false) }
+    var aiResult by remember { mutableStateOf<com.mycloset.app.logic.AiPurchase?>(null) }
+    var aiError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(topBar = {
         TopAppBar(title = { Text("Devo comprarlo?") },
@@ -170,6 +174,47 @@ fun PurchaseScreen(vm: AppViewModel, onBack: () -> Unit, onOpenItem: (Long) -> U
                 Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Colors.palette.forEach { (_, hex) -> Box(Modifier.clickable { colorHex = hex }) {
                         ColorDot(hex, if (hex.equals(colorHex, true)) 36 else 28) } }
+                }
+            }
+            if (bmp != null && aiOn) {
+                Spacer(Modifier.height(12.dp))
+                Button(enabled = !aiBusy, modifier = Modifier.fillMaxWidth(), onClick = {
+                    scope.launch {
+                        aiBusy = true; aiError = null
+                        try { aiResult = vm.ai.purchase(bmp!!, items, vm::wearsOf) }
+                        catch (e: com.mycloset.app.logic.AiException) { aiError = e.message }
+                        catch (e: Exception) { aiError = "Qualcosa e' andato storto: riprova." }
+                        aiBusy = false
+                    }
+                }) { Text(if (aiBusy) "L'AI sta valutando…" else "✨ Parere dello stilista AI") }
+                aiError?.let { Text(it, Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.error) }
+            }
+            aiResult?.let { r ->
+                Spacer(Modifier.height(12.dp))
+                Card(Modifier.fillMaxWidth(), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(when (r.verdict) { "buy" -> "Sì, compralo"; "skip" -> "Meglio evitare"; else -> "Dipende" },
+                            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(r.summary, Modifier.padding(top = 4.dp))
+                        r.reasons.forEach { Text("• $it", Modifier.padding(top = 4.dp)) }
+                        if (r.similarIds.isNotEmpty()) {
+                            Text("Simili che hai già", Modifier.padding(top = 10.dp), fontWeight = FontWeight.SemiBold)
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                r.similarIds.mapNotNull { id -> items.firstOrNull { it.id == id } }.forEach { i ->
+                                    Box(Modifier.width(76.dp).aspectRatio(0.85f).clip(RoundedCornerShape(10.dp)).background(Paper).clickable { onOpenItem(i.id) }) {
+                                        ItemImage(i, Modifier.padding(4.dp)) } }
+                            }
+                        }
+                        if (r.pairsWellIds.isNotEmpty()) {
+                            Text("Ci si abbina", Modifier.padding(top = 10.dp), fontWeight = FontWeight.SemiBold)
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                r.pairsWellIds.mapNotNull { id -> items.firstOrNull { it.id == id } }.forEach { i ->
+                                    Box(Modifier.width(76.dp).aspectRatio(0.85f).clip(RoundedCornerShape(10.dp)).background(Paper).clickable { onOpenItem(i.id) }) {
+                                        ItemImage(i, Modifier.padding(4.dp)) } }
+                            }
+                        }
+                        r.outfitIdeas.forEach { AiOutfitCard(vm, it, items, onOpenItem) }
+                    }
                 }
             }
             if (report != null) {
@@ -372,6 +417,28 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             Spacer(Modifier.height(8.dp))
+            Text("Stilista AI", fontWeight = FontWeight.SemiBold)
+            Text("Analisi automatica delle foto, chat con lo stilista e parere sugli acquisti. Le foto e l'elenco dei capi vengono inviati al tuo server, che li passa a Claude; non vengono salvati.",
+                style = MaterialTheme.typography.bodySmall)
+            val aiOn by vm.aiEnabled.collectAsState()
+            val aiUrl by vm.aiUrl.collectAsState()
+            var urlText by remember(aiUrl) { mutableStateOf(aiUrl) }
+            var aiStatus by remember { mutableStateOf<String?>(null) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Usa l'AI", Modifier.weight(1f))
+                androidx.compose.material3.Switch(aiOn, { vm.setAi(it, urlText) })
+            }
+            OutlinedTextField(urlText, { urlText = it }, label = { Text("Indirizzo del server AI") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { vm.setAi(aiOn, urlText) }) { Text("Salva") }
+                Button(onClick = {
+                    vm.setAi(aiOn, urlText)
+                    scope.launch { aiStatus = "Controllo…"; aiStatus = try { vm.ai.health() } catch (e: com.mycloset.app.logic.AiException) { e.message } }
+                }) { Text("Verifica") }
+            }
+            aiStatus?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+
+            Spacer(Modifier.height(8.dp))
             Text("Valuta", fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("€", "$", "£", "CHF ").forEach { c -> Chip(c.trim(), currency == c) { vm.setCurrency(c) } }
@@ -391,7 +458,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
             Spacer(Modifier.height(16.dp))
-            Text("MyCloset 1.0", fontWeight = FontWeight.SemiBold)
+            Text("MyCloset 1.1", fontWeight = FontWeight.SemiBold)
             Text("I tuoi dati restano sul telefono. Le foto vengono elaborate sul dispositivo; la rete serve solo per il meteo (Open-Meteo) e per scaricare, al primo uso, il modello che rimuove lo sfondo.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

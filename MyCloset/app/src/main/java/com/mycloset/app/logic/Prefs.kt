@@ -17,7 +17,21 @@ class Prefs(context: Context) {
     var currency: String
         get() = sp.getString("currency", "€") ?: "€"
         set(v) = sp.edit().putString("currency", v).apply()
+    /** Server AI (Cloudflare Worker, vedi /server). Se vuoto o disattivato l'app funziona solo sul telefono. */
+    var aiUrl: String
+        get() = sp.getString("aiUrl", DEFAULT_AI_URL) ?: ""
+        set(v) = sp.edit().putString("aiUrl", v.trim()).apply()
+    var aiEnabled: Boolean
+        get() = sp.getBoolean("aiEnabled", true)
+        set(v) = sp.edit().putBoolean("aiEnabled", v).apply()
+    var aiToken: String
+        get() = sp.getString("aiToken", "") ?: ""
+        set(v) = sp.edit().putString("aiToken", v).apply()
     var weatherCache: String
         get() = sp.getString("weather", "") ?: ""
         set(v) = sp.edit().putString("weather", v).apply()
+
+    companion object {
+        const val DEFAULT_AI_URL = "https://mycloset-api.matteocav.workers.dev"
+    }
 }

@@ -227,6 +227,8 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
     var useCutout by remember { mutableStateOf(true) }
     var busy by remember { mutableStateOf<String?>(null) }
     var cutoutFailed by remember { mutableStateOf(false) }
+    val aiOn by vm.aiEnabled.collectAsState()
+    var aiNote by remember { mutableStateOf<String?>(null) }
 
     var name by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(Category.TOP) }
@@ -255,6 +257,29 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
         }
     }
 
+    /** Compila la scheda con il server AI (se attivo). In caso di errore restano i dati rilevati sul telefono. */
+    fun runAi(photo: Bitmap) {
+        scope.launch {
+            busy = "L'AI sta guardando il capo…"; aiNote = null
+            try {
+                val a = vm.ai.analyze(photo)
+                if (a.name.isNotBlank()) name = a.name
+                category = Category.of(a.category)
+                if (a.colorHex.matches(Regex("#[0-9A-Fa-f]{6}"))) colorHex = a.colorHex
+                if (a.brand.isNotBlank()) brand = a.brand
+                if (a.seasons.isNotEmpty()) seasons = a.seasons.toSet()
+                if (a.occasions.isNotEmpty()) occasions = a.occasions.toSet()
+                if (a.material.isNotBlank()) material = a.material
+                if (a.pattern.isNotBlank()) pattern = a.pattern
+                if (a.notes.isNotBlank() && notes.isBlank()) notes = a.notes
+                aiNote = "Scheda compilata dall'AI: controlla e correggi se serve."
+            } catch (e: com.mycloset.app.logic.AiException) {
+                aiNote = "AI non disponibile (${e.message}) — uso il riconoscimento sul telefono."
+            } catch (e: Exception) { aiNote = "AI non disponibile." }
+            busy = null
+        }
+    }
+
     fun process(bmp: Bitmap) {
         original = bmp; processed = null; cutoutFailed = false
         scope.launch {
@@ -267,6 +292,7 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
             ImageProc.suggestCategory(bmp)?.let { if (existing == null) category = it }
             if (name.isBlank()) name = category.label
             busy = null
+            if (vm.ai.configured && existing == null) runAi(bmp)
         }
     }
 
@@ -335,6 +361,12 @@ fun ItemEditScreen(vm: AppViewModel, itemId: Long, startWishlist: Boolean, onClo
                     gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }, Modifier.weight(1f)) { Text("Galleria") }
             }
+            if (original != null && aiOn) {
+                OutlinedButton(onClick = { original?.let { runAi(it) } }, enabled = busy == null,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) { Text("✨ Analizza con AI") }
+            }
+            aiNote?.let { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary) }
             if (original != null) {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(if (cutoutFailed) "Sfondo non rimovibile automaticamente" else "Sfondo rimosso",

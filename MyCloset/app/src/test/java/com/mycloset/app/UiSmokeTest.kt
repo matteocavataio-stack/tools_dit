@@ -33,6 +33,12 @@ class UiSmokeTest {
 
     private fun waitText(t: String) = rule.waitUntilExactlyOneExists(androidx.compose.ui.test.hasText(t), 8000)
 
+    /** I file dell'app (database) possono restare tra un test e l'altro nello stesso processo: si riparte da zero. */
+    @org.junit.Before fun cleanDb() {
+        val vm = ViewModelProvider(rule.activity)[AppViewModel::class.java]
+        runBlocking { vm.dao.clearItems(); vm.dao.clearOutfits(); vm.dao.clearTrips() }
+    }
+
     @Test fun navigateAndBuildOutfit() {
         waitText("Cosa mi metto oggi?")
         rule.onNodeWithText("Cosa mi metto oggi?").assertIsDisplayed()

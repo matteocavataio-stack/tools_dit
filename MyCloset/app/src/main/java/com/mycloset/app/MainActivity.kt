@@ -39,6 +39,7 @@ import com.mycloset.app.ui.OutfitsScreen
 import com.mycloset.app.ui.PurchaseScreen
 import com.mycloset.app.ui.SettingsScreen
 import com.mycloset.app.ui.StatsScreen
+import com.mycloset.app.ui.StylistScreen
 import com.mycloset.app.ui.TodayScreen
 import com.mycloset.app.ui.TripDetailScreen
 import com.mycloset.app.ui.TripsScreen
@@ -88,6 +89,7 @@ private fun App(vm: AppViewModel) {
                 TodayScreen(vm,
                     onOpenItem = { nav.navigate("item/$it") },
                     onSettings = { nav.navigate("settings") },
+                    onStylist = { nav.navigate("stylist") },
                     onMatch = { nav.navigate("match") },
                     onPurchase = { nav.navigate("purchase") },
                     onTrips = { nav.navigate("trips") },
@@ -128,6 +130,9 @@ private fun App(vm: AppViewModel) {
             composable("trips") { TripsScreen(vm, onBack = { nav.popBackStack() }, onOpen = { nav.navigate("trip/$it") }) }
             composable("trip/{id}", longArg("id")) { e -> TripDetailScreen(vm, e.arguments!!.getLong("id"), onBack = { nav.popBackStack() }) }
             composable("settings") { SettingsScreen(vm, onBack = { nav.popBackStack() }) }
+            composable("stylist") {
+                StylistScreen(vm, onBack = { nav.popBackStack() }, onOpenItem = { nav.navigate("item/$it") }, onSettings = { nav.navigate("settings") })
+            }
             composable("match") { MatchScreen(vm, onBack = { nav.popBackStack() }) }
             composable("purchase") { PurchaseScreen(vm, onBack = { nav.popBackStack() }, onOpenItem = { nav.navigate("item/$it") }) }
         }
