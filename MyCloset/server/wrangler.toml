@@ -1,0 +1,21 @@
+# Server AI di MyCloset: un Cloudflare Worker con database D1. Istruzioni passo-passo in README.md.
+name = "mycloset-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mycloset-api"
+database_id = "SOSTITUISCI-CON-L-ID-DI-D1"   # lo stampa «npx wrangler d1 create mycloset-api»
+
+# Modelli e limiti (modificabili senza toccare il codice, poi «npx wrangler deploy»).
+[vars]
+MODEL_VISION = "claude-opus-5-5"   # analisi foto e controllo acquisti
+MODEL_CHAT = "claude-opus-5-5"     # stilista in chat
+DAILY_LIMIT = "30"                 # richieste AI al giorno per ogni installazione dell'app
+GLOBAL_DAILY_LIMIT = "300"        # tetto giornaliero totale (protegge dalla spesa fuori controllo)
+REGISTER_LIMIT = "20"              # nuove installazioni al giorno per indirizzo IP
+USE_FALLBACKS = "0"                # "1" = riprova su altro modello se la richiesta viene rifiutata (vedi README)
+
+[observability]
+enabled = true
